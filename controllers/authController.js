@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 import { User } from "../models/auth.model.js";
 import AppError from "../utils/error.utils.js";
-import { compare } from "bcrypt";
+import cloudinary from 'cloudinary'
+import fs from 'fs'
 
 const cookieOptions = {
   maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -10,7 +11,6 @@ const cookieOptions = {
 }
 const signUp = async (req, res, next) => {
   const { name, email, password } = req.body;
-  console.log(name, email, password)
 
   if (!name || !email || !password) {
     return next(new AppError('All fields are required', 400));
@@ -25,8 +25,35 @@ const signUp = async (req, res, next) => {
       name,
       email,
       password,
-
+      avatar: {
+        public_id: email,
+        secure_url: 'https://res.cloudinary.com/demo/image/upload/v16920000/lms/abc123.jpg'
+      }
     })
+
+    try {
+      if(req.file){
+
+        const result = await cloudinary.v2.uploader.upload(req.file.path,{
+          folder: 'lms',
+          width: 250,
+          height: 250,
+          gravity: 'faces',
+          crop: 'fill'
+        })
+        if(result){
+          user.avatar.public_id = result.public_id;
+          user.avatar.secure_url = result.secure_url
+        }
+  
+        fs.rmSync(`./uploads/${req.file.filename}`)
+      }
+    } catch (error) {
+      console.log(error.message)
+      return next(new AppError('file not uploaded,Try again !',400))
+    }
+    user.save()
+
     const token = user.generateJWTtoken();
     res.cookie('token', token, cookieOptions)
 
