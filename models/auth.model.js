@@ -58,7 +58,7 @@ userSchema.methods = {
      generateJWTtoken : async function (){
       return await jwt.sign(
         {
-            id:this._id,email:this.email,subscription:this.subscription
+            id:this._id,email:this.email,subscription:this.subscription,role:this.role
         },
         process.env.SECRET,
         {
